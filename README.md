@@ -4,10 +4,13 @@
 靈感來自 [@stevibe 的展示](https://x.com/stevibe/status/2061867450413773043)
 （「Two small models doing what one large model couldn't」）。
 
-![demo](docs/demo.png)
+![live demo](docs/demo-live.png)
 
-> 上圖為實際輸出：綠框是模型定位到的輸入框、紅點是點擊座標、框內為填入的值。
-> （標註圖的中文因 PIL 預設字型缺 CJK 而顯示為方框，實際填入值正確。）
+> 直播式介面（實機真實模型輸出）：左欄表單欄位被逐一定位並填入正確值，
+> 右欄即時顯示計時、token 數，以及大腦 Qwen3.6 的 THINKING STREAM。
+> 下圖為串流進行中（大腦推理階段）：
+>
+> ![streaming](docs/demo-streaming.png)
 
 ## 核心理念：眼睛 + 大腦
 
@@ -88,7 +91,16 @@ cd backend && MOCK_MODE=1 uv run uvicorn app.main:app --port 8000
 | 方法 | 路徑 | 說明 |
 |------|------|------|
 | GET | `/api/health` | 健康檢查、目前使用的模型 |
-| POST | `/api/autofill` | `multipart`：`image`(截圖) + `profile`(個資 JSON 字串) → 填寫計畫 |
+| POST | `/api/autofill` | `multipart`：`image`(截圖) + `profile`(個資 JSON 字串) → 一次回傳填寫計畫 |
+| POST | `/api/autofill/stream` | 同上，但以 **SSE 逐步驟串流**整個過程（眼睛掃描→大腦思考→逐欄定位→填入），供前端直播展示 |
+
+### 直播式展示
+
+前端上傳表單截圖、按「**開始填表**」後，會即時演出整個流程：
+
+- **左欄**：表單上的欄位被逐一藍色高亮定位，接著綠框 + 打字機把值填進去
+- **右欄**：模型名稱、經過時間、即時 INPUT/OUTPUT token 數、偵測縮圖，以及
+  **THINKING STREAM**——直接串流大腦 Qwen3.6 的即時推理過程
 
 範例：
 

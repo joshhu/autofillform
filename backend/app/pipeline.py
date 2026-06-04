@@ -7,6 +7,8 @@
 """
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 from PIL import Image
 
 from app.config import settings
@@ -76,3 +78,81 @@ def run_autofill(image: Image.Image, profile: dict[str, str]) -> AutofillRespons
         image_width=w, image_height=h, detected_texts=texts, plan=plan,
         brain_model=settings.BRAIN_MODEL, eyes_model=settings.LOCATE_MODEL_PATH, mock=False,
     )
+
+
+def run_autofill_stream(image: Image.Image, profile: dict[str, str]) -> Iterator[dict]:
+    """同樣的流程，但逐步驟 yield 事件，供前端動畫展示整個過程。
+
+    事件型別 (event)：
+      meta          → 影像尺寸與模型資訊
+      eyes_detect   → 眼睛偵測文字 (start / done+texts)
+      brain         → 大腦推理 (start / done+fills)
+      locate        → 逐欄定位 (start / item)
+      complete      → 完整填寫計畫
+    """
+    w, h = image.size
+    yield {"event": "meta", "image_width": w, "image_height": h,
+           "brain_model": settings.BRAIN_MODEL, "eyes_model": settings.LOCATE_MODEL_PATH,
+           "mock": settings.MOCK_MODE}
+
+    if settings.MOCK_MODE:
+        result = _mock_run(image, profile)
+        yield {"event": "eyes_detect", "status": "start"}
+        yield {"event": "eyes_detect", "status": "done",
+               "texts": [t.model_dump() for t in result.detected_texts]}
+        yield {"event": "brain", "status": "start"}
+        # 模擬思考串流
+        think = "分析偵測到的欄位並對應使用者資料…\n"
+        for it in result.plan:
+            think += f"- {it.label} → {it.value}\n"
+        for word in think.split(" "):
+            yield {"event": "brain", "status": "thinking", "text": word + " "}
+        yield {"event": "brain", "status": "tokens", "input_tokens": 1234, "output_tokens": 256}
+        yield {"event": "brain", "status": "done",
+               "fills": [{"label": it.label, "value": it.value,
+                          "target_phrase": it.target_phrase, "reason": it.reason}
+                         for it in result.plan]}
+        for i, it in enumerate(result.plan):
+            yield {"event": "locate", "status": "start", "index": i,
+                   "total": len(result.plan), "label": it.label}
+            yield {"event": "locate", "status": "item", "index": i, "item": it.model_dump()}
+        yield {"event": "complete", "plan": [it.model_dump() for it in result.plan]}
+        return
+
+    from app.models.brain import BrainClient
+    from app.models.locate import LocateAnythingWorker
+
+    eyes = LocateAnythingWorker.get()
+    brain = BrainClient()
+
+    yield {"event": "eyes_detect", "status": "start"}
+    texts = eyes.detect_texts(image)
+    yield {"event": "eyes_detect", "status": "done",
+           "texts": [t.model_dump() for t in texts]}
+
+    yield {"event": "brain", "status": "start"}
+    fills: list[dict] = []
+    for ev in brain.plan_fill_stream(profile, texts):
+        if ev["type"] == "thinking":
+            yield {"event": "brain", "status": "thinking", "text": ev["text"]}
+        elif ev["type"] == "content":
+            yield {"event": "brain", "status": "content", "text": ev["text"]}
+        elif ev["type"] == "result":
+            fills = ev["fills"]
+            yield {"event": "brain", "status": "tokens",
+                   "input_tokens": ev["input_tokens"], "output_tokens": ev["output_tokens"]}
+    yield {"event": "brain", "status": "done", "fills": fills}
+
+    plan: list[FillItem] = []
+    for i, f in enumerate(fills):
+        label = f.get("label", "")
+        phrase = f.get("target_phrase") or f"the input box for {label}"
+        yield {"event": "locate", "status": "start", "index": i,
+               "total": len(fills), "label": label}
+        bbox, point = eyes.ground(image, phrase)
+        item = FillItem(label=label, value=str(f.get("value", "")),
+                        target_phrase=phrase, bbox=bbox, point=point, reason=f.get("reason"))
+        plan.append(item)
+        yield {"event": "locate", "status": "item", "index": i, "item": item.model_dump()}
+
+    yield {"event": "complete", "plan": [it.model_dump() for it in plan]}

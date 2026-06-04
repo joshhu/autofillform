@@ -22,3 +22,6 @@ models_cache/
 
 # 產出
 samples/form_filled.png
+
+# 使用者提供的參考截圖（第三方內容，不入庫）
+example.jpg
