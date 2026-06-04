@@ -90,8 +90,11 @@ def run_autofill_stream(image: Image.Image, profile: dict[str, str]) -> Iterator
       locate        → 逐欄定位 (start / item)
       complete      → 完整填寫計畫
     """
+    from app.loader import to_png_data_url
+
     w, h = image.size
     yield {"event": "meta", "image_width": w, "image_height": h,
+           "image_data_url": to_png_data_url(image),
            "brain_model": settings.BRAIN_MODEL, "eyes_model": settings.LOCATE_MODEL_PATH,
            "mock": settings.MOCK_MODE}
 

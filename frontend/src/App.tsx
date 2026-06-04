@@ -76,7 +76,12 @@ export default function App() {
     setThinking("");
     setMeta(null);
     setError("");
-    if (f) setImgUrl(URL.createObjectURL(f));
+    // PDF 無法直接用 <img> 預覽，等開始填表後由後端回傳轉好的點陣圖
+    if (f && !/pdf$/i.test(f.type) && !/\.pdf$/i.test(f.name)) {
+      setImgUrl(URL.createObjectURL(f));
+    } else {
+      setImgUrl("");
+    }
   }
 
   // 目前正在定位的欄位 → 對應到偵測到的標籤框，做藍色高亮
@@ -93,6 +98,8 @@ export default function App() {
     switch (ev.event) {
       case "meta":
         setMeta(ev);
+        // 改用後端實際處理的影像（PDF 已轉點陣圖），確保疊框座標精準對齊
+        if (ev.image_data_url) setImgUrl(ev.image_data_url);
         break;
       case "eyes_detect":
         if (ev.status === "start") setPhase("👁 眼睛掃描表單…");
@@ -167,8 +174,8 @@ export default function App() {
           {/* 工具列 */}
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <label className="cursor-pointer rounded bg-slate-800 text-slate-100 text-sm px-3 py-1.5 hover:bg-slate-700">
-              選擇表單截圖
-              <input type="file" accept="image/*" className="hidden"
+              {file ? `已選：${file.name}` : "選擇表單（圖片 / PDF）"}
+              <input type="file" accept="image/*,application/pdf,.pdf" className="hidden"
                 onChange={(e) => onPick(e.target.files?.[0] ?? null)} />
             </label>
             <button onClick={() => setShowProfile((s) => !s)}
@@ -240,8 +247,10 @@ export default function App() {
               )}
             </div>
           ) : (
-            <div className="h-80 grid place-items-center text-slate-400 text-sm">
-              上傳表單截圖後按「開始填表」，這裡會即時展示定位與填入過程
+            <div className="h-80 grid place-items-center text-slate-400 text-sm text-center px-4">
+              {file
+                ? `已選擇 PDF：${file.name}（按「開始填表」後，這裡會顯示轉好的頁面並即時填入）`
+                : "上傳表單（圖片或 PDF）後按「開始填表」，這裡會即時展示定位與填入過程"}
             </div>
           )}
         </section>

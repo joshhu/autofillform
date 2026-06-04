@@ -25,3 +25,9 @@ samples/form_filled.png
 
 # 使用者提供的參考截圖（第三方內容，不入庫）
 example.jpg
+
+# 使用者提供的測試 PDF（不入庫）
+form.pdf
+
+# 執行期
+.run/

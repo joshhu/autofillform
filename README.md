@@ -86,6 +86,24 @@ cd .. && ./run-dev.sh
 cd backend && MOCK_MODE=1 uv run uvicorn app.main:app --port 8000
 ```
 
+## 對外伺服器（從別台機器連進來示範）
+
+`start-server.sh` 會 build 前端、用**單一埠**同時提供網頁與 API，並綁 `0.0.0.0`、
+脫離終端機常駐（關掉 SSH 也不會停）：
+
+```bash
+./start-server.sh           # 預設 8000，真實模型
+MOCK_MODE=1 ./start-server.sh   # 無 GPU 先看前端
+./stop-server.sh            # 停止
+```
+
+啟動後會印出區網網址，例如 `http://192.168.1.112:8000`。在**另一台機器**的瀏覽器打開，
+即可上傳表單（**圖片或 PDF**）→ 按「開始填表」→ 觀看即時展示。
+（若連不到，請確認防火牆放行該埠：`sudo ufw allow 8000`。）
+
+> 支援 PDF：上傳後後端以 PyMuPDF 取第一頁轉點陣圖，前端顯示的即為模型實際處理的影像，
+> 確保疊框座標精準對齊。
+
 ## API
 
 | 方法 | 路徑 | 說明 |

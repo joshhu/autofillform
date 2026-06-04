@@ -43,7 +43,7 @@ export async function autofill(
 
 // ---- 串流事件型別 ----
 export type StreamEvent =
-  | { event: "meta"; image_width: number; image_height: number; brain_model: string; eyes_model: string; mock: boolean }
+  | { event: "meta"; image_width: number; image_height: number; image_data_url: string; brain_model: string; eyes_model: string; mock: boolean }
   | { event: "eyes_detect"; status: "start" }
   | { event: "eyes_detect"; status: "done"; texts: DetectedText[] }
   | { event: "brain"; status: "start" }
