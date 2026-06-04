@@ -1,0 +1,36 @@
+[project]
+name = "autofillform-backend"
+version = "0.1.0"
+description = "兩小模型協作自動填表系統後端（LocateAnything-3B + Qwen3.6 35B A3B）"
+readme = "../README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "python-multipart>=0.0.12",
+    "pillow>=11.0",
+    "httpx>=0.27",
+    "pydantic>=2.9",
+]
+
+[project.optional-dependencies]
+# 眼睛模型推理（需 GPU）
+gpu = [
+    "torch",
+    "torchvision",
+    "transformers==4.57.1",
+    "opencv-python-headless==4.11.0.86",
+    "numpy>=1.26,<2",
+    "peft",
+    "lmdb==1.7.5",
+    "accelerate",
+    # 注意：HF 指南列的 decord 僅用於影片，arm64 無 wheel，填表用不到故移除。
+    # 若 LocateAnything 載入時硬性 import decord，請改裝 arm64 分支 eva-decord。
+]
+# 真實填表執行器
+exec = ["playwright>=1.48"]
+dev = ["pytest>=8.3", "pytest-asyncio>=0.24"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+asyncio_mode = "auto"

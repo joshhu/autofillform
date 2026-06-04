@@ -1,0 +1,31 @@
+# 部署用。大腦 Qwen3.6 走「宿主機既有的 Ollama」，眼睛在 GPU 容器內。
+# 注意：DGX Spark (arm64 + CUDA13) 上，已驗證可用的是本機 uv 路徑（見 README）；
+#       本 compose 為部署參考，GPU 映像請對應你的 CUDA 版本。
+services:
+  backend:
+    build: ./backend
+    environment:
+      - MOCK_MODE=${MOCK_MODE:-0}
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - BRAIN_MODEL=${BRAIN_MODEL:-qwen3.6:35b}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${FRONTEND_PORT:-9080}:80"
+    depends_on:
+      - backend
+
+volumes:
+  hf_cache:

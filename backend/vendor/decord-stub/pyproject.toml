@@ -1,0 +1,8 @@
+[project]
+name = "decord"
+version = "0.0.0"
+description = "arm64 stub for decord (image-only use; no video)"
+requires-python = ">=3.10"
+
+[tool.setuptools]
+packages = ["decord"]

@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+backend/.venv/
+*.egg-info/
+.pytest_cache/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Env / secrets
+.env
+*.local
+
+# 模型權重不入庫
+*.safetensors
+*.gguf
+models_cache/
+
+# 產出
+samples/form_filled.png
